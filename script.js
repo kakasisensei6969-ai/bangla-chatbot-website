@@ -1,18 +1,17 @@
 async function sendMessage() {
     const userInput = document.getElementById("userInput");
-    const text = userInput.value.trim();
-    if (!text) return;
+    const message = userInput.value.trim();
+    if (!message) return;
 
-    addMessage(text, true);
+    addMessage(message, true);
     userInput.value = "";
-
     showTyping();
 
     try {
-        const response = await fetch("chatbot.php", {
+        const response = await fetch("/.netlify/functions/chatbot", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: text })
+            body: JSON.stringify({ message })
         });
 
         const data = await response.json();
@@ -20,37 +19,38 @@ async function sendMessage() {
         hideTyping();
         addMessage(data.reply, false);
 
-    } catch (err) {
+    } catch (error) {
         hideTyping();
-        addMessage("❌ সার্ভারে সমস্যা। পরে চেষ্টা করুন।", false);
+        addMessage("❌ সার্ভার সমস্যা। আবার চেষ্টা করুন।", false);
     }
 }
 
 function addMessage(text, isUser) {
-    const box = document.getElementById("chatMessages");
-    const msg = document.createElement("div");
-    msg.className = isUser ? "message user-msg" : "message bot-msg";
-    msg.innerText = text;
-    box.appendChild(msg);
-    box.scrollTop = box.scrollHeight;
+    const chatBox = document.getElementById("chatMessages");
+    const div = document.createElement("div");
+    div.className = isUser ? "message user-msg" : "message bot-msg";
+    div.innerText = text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 function showTyping() {
-    const box = document.getElementById("chatMessages");
-    const t = document.createElement("div");
-    t.id = "typing";
-    t.className = "message bot-msg";
-    t.innerText = "টাইপ করছে...";
-    box.appendChild(t);
-    box.scrollTop = box.scrollHeight;
+    const chatBox = document.getElementById("chatMessages");
+    const typing = document.createElement("div");
+    typing.id = "typing";
+    typing.className = "message bot-msg";
+    typing.innerText = "টাইপ করছে...";
+    chatBox.appendChild(typing);
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 function hideTyping() {
-    const t = document.getElementById("typing");
-    if (t) t.remove();
+    const typing = document.getElementById("typing");
+    if (typing) typing.remove();
 }
 
 document.getElementById("sendBtn").onclick = sendMessage;
+
 document.getElementById("userInput").addEventListener("keydown", e => {
     if (e.key === "Enter") sendMessage();
 });
