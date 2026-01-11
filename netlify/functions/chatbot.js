@@ -1,56 +1,38 @@
-async function sendMessage() {
-    const userInput = document.getElementById("userInput");
-    const message = userInput.value.trim();
-    if (!message) return;
-
-    addMessage(message, true);
-    userInput.value = "";
-    showTyping();
-
+exports.handler = async (event, context) => {
     try {
-        const response = await fetch("/.netlify/functions/chatbot", {
+        const { message } = JSON.parse(event.body);
+
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message })
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: "mixtral-8x7b-32768",
+                messages: [
+                    { role: "system", content: "You are a helpful Bangla assistant." },
+                    { role: "user", content: message }
+                ]
+            })
         });
 
-        const data = await response.json();
+        const data = await res.json();
 
-        hideTyping();
-        addMessage(data.reply, false);
+        const reply =
+            data?.choices?.[0]?.message?.content ||
+            "দুঃখিত, এখন উত্তর দিতে পারছি না।";
 
-    } catch (error) {
-        hideTyping();
-        addMessage("❌ সার্ভার সমস্যা। আবার চেষ্টা করুন।", false);
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ reply })
+        };
+    } catch (err) {
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                reply: "❌ সার্ভার সমস্যা!"
+            })
+        };
     }
-}
-
-function addMessage(text, isUser) {
-    const chatBox = document.getElementById("chatMessages");
-    const div = document.createElement("div");
-    div.className = isUser ? "message user-msg" : "message bot-msg";
-    div.innerText = text;
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-function showTyping() {
-    const chatBox = document.getElementById("chatMessages");
-    const typing = document.createElement("div");
-    typing.id = "typing";
-    typing.className = "message bot-msg";
-    typing.innerText = "টাইপ করছে...";
-    chatBox.appendChild(typing);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-function hideTyping() {
-    const typing = document.getElementById("typing");
-    if (typing) typing.remove();
-}
-
-document.getElementById("sendBtn").onclick = sendMessage;
-
-document.getElementById("userInput").addEventListener("keydown", e => {
-    if (e.key === "Enter") sendMessage();
-});
+};
